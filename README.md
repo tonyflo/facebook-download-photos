@@ -49,10 +49,13 @@ python download.py -u username -e you@example.com -p password -a by
 ```
 python download.py -u username -e you@example.com -p password -a of
 python download.py -u username -e you@example.com -p password -a by
+```
 
 ## Command Overview
 ```
 usage: download.py [-h] -e EMAIL -p PASSWORD [-a {of,by}] [-u USERNAME]
+
+Download photos from Facebook
 
 optional arguments:
   -h, --help            show this help message and exit
