@@ -157,18 +157,18 @@ def get_args():
     print('|Date: 2022-04-06         |')
     print('+-------------------------+\n')
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Download photos from Facebook')
     parser.add_argument('-e', '--email',
                         type=str,
                         required=True,
-                        help='Facebook email')
+                        help='Your Facebook email')
     parser.add_argument('-p', '--password',
                         type=str,
                         required=True,
-                        help='Facebook password')
+                        help='Your Facebook password')
     album_help=('Photo album to download (default: %(default)s). '
-               'Use "of" to download tagged photos of you. '
-               'Use "by" to download your uploaded photos.')
+               'Use "of" to download tagged photos. '
+               'Use "by" to download uploaded photos.')
     parser.add_argument('-a', '--album',
                         type=str,
                         required=False,
@@ -179,7 +179,7 @@ def get_args():
                         type=str,
                         required=False,
                         default='me',
-                        help='Facebook username')
+                        help='Facebook username to download photos from')
     args = parser.parse_args()
 
     return args
