@@ -48,6 +48,11 @@ def get_photo_id(url):
         pid = ''
     return pid
 
+def logged_in(browser):
+    return not ('Log into' in browser.title or
+            'Log In' in browser.title or
+            'Page Not Found' in browser.title)
+
 def go():
     args = get_args()
     album = args.album
@@ -65,9 +70,7 @@ def go():
     print('Going to Facebook')
     fb_url = 'https://www.facebook.com/login'
     browser.get(fb_url)
-    if ('Log into' in browser.title or
-       'Log In' in browser.title or
-       'Page Not Found' in browser.title):
+    if not logged_in(browser):
         print('Logging into Facebook')
         email = browser.find_element_by_id("email")
         password = browser.find_element_by_id("pass")
@@ -76,17 +79,17 @@ def go():
         password.send_keys(args.password)
         submit.click()
         time.sleep(3) # wait this many seconds
+        browser.get(browser.current_url)
 
-    print('Going to photos page')
-    fb_photos = 'https://www.facebook.com/{}/photos'.format(username)
-    browser.get(fb_photos)
-
-    # check if login was successful
-    if username not in browser.current_url:
+    if not logged_in(browser):
         print('Login failed. Please check your credentials')
         return
 
-    print('Opening photo album')
+    print('Going to photos page for ' + username)
+    fb_photos = 'https://www.facebook.com/{}/photos'.format(username)
+    browser.get(fb_photos)
+
+    print('Opening "{}" photo album'.format(album))
     fb_photo_album = fb_photos + '_' + album
     browser.get(fb_photo_album)
 
@@ -95,7 +98,7 @@ def go():
     first_photo_id = get_photo_id(first_photo)
 
     # loop over all photos in Facebook album
-    print('Downloading all photos...')
+    print('Downloading all {} "{}" photos...'.format(username, album))
     count = 1
     while True:
         current_photo = browser.current_url
@@ -105,7 +108,7 @@ def go():
             continue
 
         sequence = str(count).zfill(6)
-        download(browser, album, sequence)
+        download(browser, username, album, sequence)
 
         next_photo_id = next_photo(browser)
         if (next_photo_id == first_photo_id):
@@ -115,7 +118,7 @@ def go():
     print('Downloaded {} Facebook photos'.format(count))
 
 # download photo
-def download(browser, album, sequence):
+def download(browser, username, album, sequence):
     # update browser object with content from current url
     browser.get(browser.current_url)
 
@@ -138,7 +141,7 @@ def download(browser, album, sequence):
     dt = datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d')
 
     # create a filename for the image
-    filename = "photos/fb_{}_{}_{}.{}".format(dt, album, sequence, ext)
+    filename = "photos/{}_fb_{}_{}_{}.{}".format(dt, album, username, sequence, ext)
 
     # download the image
     urllib.request.urlretrieve(uri, filename)
@@ -155,10 +158,6 @@ def get_args():
     print('+-------------------------+\n')
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-u', '--username',
-                        type=str,
-                        required=True,
-                        help='Facebook username')
     parser.add_argument('-e', '--email',
                         type=str,
                         required=True,
@@ -176,6 +175,11 @@ def get_args():
                         choices=['of', 'by'],
                         default='of',
                         help=album_help)
+    parser.add_argument('-u', '--username',
+                        type=str,
+                        required=False,
+                        default='me',
+                        help='Facebook username')
     args = parser.parse_args()
 
     return args
