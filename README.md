@@ -41,7 +41,7 @@ python download.py -e you@example.com -p password -a of
 
 ### 6. Download Facebook photos you've uploaded
 ```
-python download.py -u username -e you@example.com -p password -a by
+python download.py -e you@example.com -p password -a by
 ```
 **NOTE:** *Be sure to replace *email* and *password* with your actual Facebook username, email, and password.*
 
