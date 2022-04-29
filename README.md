@@ -7,12 +7,13 @@ So I decided to write this script to download Facebook photos that you're tagged
 
 ## How to Download All Your Photos from Facebook
 
-**NOTE #1:** You will need to have Python 3 and Google Chrome installed
+**NOTE:** You will need to have Python 3 and Google Chrome installed
 
-**NOTE #2:** You will need to know your Facebook username. When logged in, you can find your Facebook username at https://facebook.com/me
+This code was tested on macOS, but should also work on Windows and Linux.
 
 ### 1. Create a virtual Python environment
 ```
+mkdir ~/env
 python3 -m venv ~/env/fb
 source ~/env/fb/bin/activate
 ```
