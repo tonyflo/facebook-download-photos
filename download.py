@@ -16,7 +16,7 @@ from selenium.webdriver.common.keys import Keys
 # hit right arrow key to go to next photo
 # return fbid of photo
 def next_photo(browser):
-    body = browser.find_element_by_xpath('/html/body')
+    body = browser.find_element(By.XPATH, '/html/body')
     body.send_keys(Keys.RIGHT)
 
     time.sleep(1) # wait this many seconds
@@ -29,7 +29,7 @@ def open_album(browser):
     photo_str = 'photo.php'
     photo_base = 'https://www.facebook.com/photo'
     xpath_str = '''//div[contains( text( ), photo_str)]'''
-    photos_tag = browser.find_element_by_xpath(xpath_str)
+    photos_tag = browser.find_element(By.XPATH, xpath_str)
     photos_html = photos_tag.get_attribute('innerHTML')
     photo_search_str = '(href="'+ photo_base + '\.php(?P<pid>.*?)")'
     photo_search = re.search(photo_search_str, photos_html)
@@ -72,9 +72,9 @@ def go():
     browser.get(fb_url)
     if not logged_in(browser):
         print('Logging into Facebook')
-        email = browser.find_element_by_id("email")
-        password = browser.find_element_by_id("pass")
-        submit = browser.find_element_by_id("loginbutton")
+        email = browser.find_element(By.ID, "email")
+        password = browser.find_element(By.ID, "pass")
+        submit = browser.find_element(By.ID, "loginbutton")
         email.send_keys(args.email)
         password.send_keys(args.password)
         submit.click()
@@ -124,7 +124,7 @@ def download(browser, username, album, sequence):
 
     # find the relevant tag containing link to photo
     xpath_str = '''//script[contains( text( ), 'image":{"uri')]'''
-    script_tag = browser.find_element_by_xpath(xpath_str)
+    script_tag = browser.find_element(By.XPATH, xpath_str)
     script_html = script_tag.get_attribute('innerHTML')
 
     # parse the tag for the image url
