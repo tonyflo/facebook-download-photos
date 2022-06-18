@@ -94,7 +94,11 @@ def go():
     browser.get(fb_photo_album)
 
     print('Loading first photo')
-    first_photo = open_album(browser)
+    try:
+        first_photo = open_album(browser)
+    except AttributeError:
+        print('User does not have "{}" album'.format(album))
+        return
     first_photo_id = get_photo_id(first_photo)
 
     # loop over all photos in Facebook album
