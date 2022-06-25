@@ -85,8 +85,15 @@ def go():
         print('Login failed. Please check your credentials')
         return
 
+    print('Going to profile page for ' + username)
+    fb_profile = 'https://www.facebook.com/{}'.format(username)
+    browser.get(fb_profile)
+
     print('Going to photos page for ' + username)
     fb_photos = 'https://www.facebook.com/{}/photos'.format(username)
+    if 'profile.php' in browser.current_url:
+        # FB profiles without username have different URL
+        fb_photos = browser.current_url + '&sk=photos'
     browser.get(fb_photos)
 
     print('Opening "{}" photo album'.format(album))
