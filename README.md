@@ -22,6 +22,7 @@ source ~/env/fb/bin/activate
 ```
 python3 -m pip install --upgrade pip
 pip install selenium
+pip install webdriver-manager
 ```
  
 #### 3. Clone this repository
@@ -30,23 +31,20 @@ git clone git@github.com:tonyflo/facebook-download-photos.git
 cd facebook-download-photos
 ```
 
-### 4. Get the ChromeDriver
-Go to https://sites.google.com/chromium.org/driver/ and download the lastest stable release for your opperating system. Extract the contents of the zip file into the *facebook-download-photos* directory.
- 
-#### 5. Download Facebook photos you're tagged in
+#### 4. Download Facebook photos you're tagged in
 Execute the following command to download all Facebook photos that you are tagged in.
 ```
 python download.py -e you@example.com -p password -a of
 ```
 **NOTE:** *Be sure to replace *email* and *password* with your actual Facebook username, email, and password.*
 
-### 6. Download Facebook photos you've uploaded
+### 5. Download Facebook photos you've uploaded
 ```
 python download.py -e you@example.com -p password -a by
 ```
 **NOTE:** *Be sure to replace *email* and *password* with your actual Facebook username, email, and password.*
 
-### 7. Download someone else's Facebook photos
+### 6. Download someone else's Facebook photos
 ```
 python download.py -u username -e you@example.com -p password -a of
 python download.py -u username -e you@example.com -p password -a by
