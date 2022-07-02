@@ -25,13 +25,13 @@ pip install selenium
 pip install webdriver-manager
 ```
  
-#### 3. Clone this repository
+### 3. Clone this repository
 ```
 git clone git@github.com:tonyflo/facebook-download-photos.git
 cd facebook-download-photos
 ```
 
-#### 4. Download Facebook photos you're tagged in
+### 4. Download Facebook photos you're tagged in
 Execute the following command to download all Facebook photos that you are tagged in.
 ```
 python download.py -e you@example.com -p password -a of
