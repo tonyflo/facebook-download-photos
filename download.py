@@ -8,9 +8,11 @@ import urllib.request
 
 from datetime import datetime
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 # hit right arrow key to go to next photo
@@ -59,13 +61,12 @@ def go():
     username = args.username
 
     print('Opening Google Chrome browser')
-    options = Options()
     prefs = {"profile.default_content_setting_values.notifications" : 2}
+    options = Options()
     options.add_experimental_option('prefs', prefs)
     options.add_argument("--disable-infobars")
     options.add_argument("--disable-extensions")
-    browser = webdriver.Chrome(executable_path='./chromedriver',
-                               chrome_options=options)
+    browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 
     print('Going to Facebook')
     fb_url = 'https://www.facebook.com/login'
