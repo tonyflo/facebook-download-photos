@@ -15,9 +15,17 @@ from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
 
 
+def dismiss_alert(browser):
+    try:
+        alert = browser.switch_to_alert()
+        alert.dismiss()
+    except:
+        pass # alert does not exist
+
 # hit right arrow key to go to next photo
 # return fbid of photo
 def next_photo(browser):
+    dismiss_alert(browser) # alert has focus, so get rid of it if present
     body = browser.find_element(By.XPATH, '/html/body')
     body.send_keys(Keys.RIGHT)
 
