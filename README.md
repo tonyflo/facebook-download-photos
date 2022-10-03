@@ -13,7 +13,6 @@ This code was tested on macOS, but should also work on Windows and Linux.
 
 ### 1. Create a virtual Python environment
 ```
-mkdir ~/env
 python3 -m venv ~/env/fb
 source ~/env/fb/bin/activate
 ```
