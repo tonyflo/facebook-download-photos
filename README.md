@@ -26,7 +26,7 @@ pip install webdriver-manager
  
 ### 3. Clone this repository
 ```
-git clone git@github.com:tonyflo/facebook-download-photos.git
+git clone https://github.com/tonyflo/facebook-download-photos.git
 cd facebook-download-photos
 ```
 
