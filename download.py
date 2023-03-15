@@ -4,10 +4,13 @@ import os
 import re
 import time
 import argparse
+import selenium
 import urllib.request
 
 from datetime import datetime
 from selenium import webdriver
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -15,13 +18,23 @@ from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
 
 
+def get_element(browser, how, what):
+    element = None
+    try:
+        element = browser.find_element(how, what)
+    except selenium.common.exceptions.NoSuchElementException:
+        pass
+    return element
+
 # hit right arrow key to go to next photo
 # return fbid of photo
-def next_photo(browser):
-    body = browser.find_element(By.XPATH, '/html/body')
-    body.send_keys(Keys.RIGHT)
+def next_photo(browser, timeout=1):
+    body = get_element(browser, By.XPATH, '/html/body')
+    if body is None:
+        return  None
 
-    time.sleep(1) # wait this many seconds
+    body.send_keys(Keys.RIGHT)
+    time.sleep(timeout) # wait this many seconds
 
     return get_photo_id(browser.current_url)
 
@@ -31,7 +44,10 @@ def open_album(browser):
     photo_str = 'photo.php'
     photo_base = 'https://www.facebook.com/photo'
     xpath_str = '''//div[contains( text( ), photo_str)]'''
-    photos_tag = browser.find_element(By.XPATH, xpath_str)
+    photos_tag = get_element(browser, By.XPATH, xpath_str)
+    if photos_tag is None:
+        return  None
+
     photos_html = photos_tag.get_attribute('innerHTML')
     photo_search_str = '(href="'+ photo_base + '\.php(?P<pid>.*?)")'
     photo_search = re.search(photo_search_str, photos_html)
@@ -51,14 +67,16 @@ def get_photo_id(url):
     return pid
 
 def logged_in(browser):
-    return not ('Log into' in browser.title or
-            'Log In' in browser.title or
-            'Page Not Found' in browser.title)
+    return 'login' not in browser.current_url
+
+def checkpoint_passed(driver):
+    return 'checkpoint' not in driver.current_url
 
 def go():
     args = get_args()
     album = args.album
     username = args.username
+    timeout = args.timeout
 
     print('Opening Google Chrome browser')
     prefs = {"profile.default_content_setting_values.notifications" : 2}
@@ -111,66 +129,116 @@ def go():
     except AttributeError:
         print('User does not have "{}" album'.format(album))
         return
+    if first_photo is None:
+        print('User does not have "{}" album'.format(album))
+        return
+
     first_photo_id = get_photo_id(first_photo)
 
     # loop over all photos in Facebook album
     print('Downloading all {} "{}" photos...'.format(username, album))
-    count = 1
+    count_download = 0
+    count_total = 0
+    number_of_photos = 'an unknown'
     while True:
         current_photo = browser.current_url
         if 'videos' in current_photo:
             print('Skipping video: {}'.format(current_photo))
-            next_photo(browser)
+            next_photo(browser, timeout)
             continue
 
-        sequence = str(count).zfill(6)
-        download(browser, username, album, sequence)
-
-        next_photo_id = next_photo(browser)
-        if (next_photo_id == first_photo_id):
+        count_total = count_total + 1
+        try:
+            success = download(browser, username, album)
+        except RuntimeError as e:
+            print('ERROR: Facebook blocked this account for "going too fast".')
+            print('  This is tempoary, but you must wait before trying again.')
+            print('  Pick a longer wait time between photos with --timeout.')
             break
-        count = count + 1
 
-    print('Downloaded {} Facebook photos'.format(count))
+        if not success:
+            continue
+
+        count_download = count_download + 1
+
+        photo_id = next_photo(browser, timeout)
+        if (photo_id == first_photo_id):
+            number_of_photos = str(count_total)
+            break
+
+        if photo_id is None:
+            print('ERROR: No HTML body at {}'.format(current_photo))
+            continue
+
+    print('Downloaded {}/{} photos (of {} total)'.format(
+        count_download, 
+        count_total,
+        number_of_photos))
 
 # download photo
-def download(browser, username, album, sequence):
+def download(browser, username, album):
     # update browser object with content from current url
     browser.get(browser.current_url)
 
     # find the relevant tag containing link to photo
     xpath_str = '''//script[contains( text( ), 'image":{"uri')]'''
-    script_tag = browser.find_element(By.XPATH, xpath_str)
+    script_tag = get_element(browser, By.XPATH, xpath_str)
+    if script_tag is None:
+        if 'Temporarily Blocked' in browser.page_source:
+            raise RuntimeError('Temporarily Blocked by FaceBook')
+        print('ERROR: No image at {}'.format(browser.current_url))
+        return False
+
     script_html = script_tag.get_attribute('innerHTML')
 
     # parse the tag for the image url
     html_search = re.search('"image":{"uri":"(?P<uri>.*?)"', script_html)
     uri = html_search.group('uri').replace('\\', '')
-    print('Downloading {}'.format(uri))
 
-    # determine file type
-    ext = re.search('\.(?P<ext>\w+)\?', uri).group('ext')
+    # determine file type and photo id
+    matches = re.search('(?P<photo_id>\w+)\.(?P<ext>\w+)\?', uri)
+    ext = matches.group('ext')
+    photo_id = matches.group('photo_id')
 
     # parse the tag for the image date
     time_search = re.search('"created_time":(?P<timestamp>\d+)', script_html)
     ts = int(time_search.group('timestamp'))
-    dt = datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d')
+    dt = datetime.utcfromtimestamp(ts).strftime('%Y%m%d')
 
     # create a filename for the image
-    filename = "photos/{}_fb_{}_{}_{}.{}".format(dt, album, username, sequence, ext)
+    filename_format = "photos/{date}_fb_{album}_{user}_{photo_id}.{ext}"
+    filename = filename_format.format(
+        date=dt, 
+        album=album, 
+        user=username, 
+        photo_id=photo_id,
+        ext=ext,
+    )
+
+    # check if already downloaded
+    if os.path.isfile(filename):
+        print("Photo {} already downloaded".format(filename))
+        return False
 
     # download the image
-    urllib.request.urlretrieve(uri, filename)
+    print('Downloading {}'.format(uri))
+    try:
+        urllib.request.urlretrieve(uri, filename)
+    except urllib.error.URLError as e:
+        print('ERROR: Network error: {}'.format(e))
+        return False
 
     # set access and modified times
     os.utime(filename, (ts, ts))
+
+    return True
 
 
 def get_args():
     print('+-------------------------+')
     print('|Facebook Photo Downloader|')
     print('|By: Tony Teaches Tech    |')
-    print('|Date: 2022-04-06         |')
+    print('|Date: 2023-03-15         |')
     print('+-------------------------+\n')
 
     parser = argparse.ArgumentParser(description='Download photos from Facebook')
@@ -196,6 +264,13 @@ def get_args():
                         required=False,
                         default='me',
                         help='Facebook username to download photos from')
+    timeout_help=('Wait this many seconds between photos '
+                  '(default: %(default)s)')
+    parser.add_argument('-t', '--timeout',
+                        type=int,
+                        required=False,
+                        default=1,
+                        help=timeout_help)
     args = parser.parse_args()
 
     return args
