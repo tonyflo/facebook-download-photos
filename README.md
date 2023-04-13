@@ -66,4 +66,6 @@ optional arguments:
                         tagged photos. Use "by" to download uploaded photos.
   -u USERNAME, --username USERNAME
                         Facebook username to download photos from
+  -t TIMEOUT, --timeout TIMEOUT
+                        Wait this many seconds between photos (default: 2)
 ```
