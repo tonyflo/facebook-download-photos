@@ -218,7 +218,7 @@ def download(browser, username, album):
     # check if already downloaded
     if os.path.isfile(filename):
         print("Photo {} already downloaded".format(filename))
-        return False
+        return True
 
     # download the image
     print('Downloading {}'.format(uri))
@@ -269,7 +269,7 @@ def get_args():
     parser.add_argument('-t', '--timeout',
                         type=int,
                         required=False,
-                        default=1,
+                        default=2,
                         help=timeout_help)
     args = parser.parse_args()
 
