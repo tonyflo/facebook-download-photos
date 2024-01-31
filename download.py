@@ -77,6 +77,7 @@ def go():
     album = args.album
     username = args.username
     timeout = args.timeout
+    lastdownload = args.lastdownload
 
     print('Opening Google Chrome browser')
     prefs = {"profile.default_content_setting_values.notifications" : 2}
@@ -149,7 +150,7 @@ def go():
 
         count_total = count_total + 1
         try:
-            success = download(browser, username, album)
+            success = download(browser, username, album, lastdownload)
         except RuntimeError as e:
             print('ERROR: Facebook blocked this account for "going too fast".')
             print('  This is tempoary, but you must wait before trying again.')
@@ -176,7 +177,7 @@ def go():
         number_of_photos))
 
 # download photo
-def download(browser, username, album):
+def download(browser, username, album, lastdownload):
     # update browser object with content from current url
     browser.get(browser.current_url)
 
@@ -218,10 +219,14 @@ def download(browser, username, album):
     # check if already downloaded
     if os.path.isfile(filename):
         print("Photo {} already downloaded".format(filename))
+        # Go to last download url if last download is not none
+        if lastdownload != 'none':
+            browser.get(lastdownload)
         return True
 
     # download the image
     print('Downloading {}'.format(uri))
+    print('from {}'.format(browser.current_url))
     try:
         urllib.request.urlretrieve(uri, filename)
     except urllib.error.URLError as e:
@@ -271,6 +276,11 @@ def get_args():
                         required=False,
                         default=2,
                         help=timeout_help)
+    parser.add_argument('-l', '--lastdownload',
+                        type=str,
+                        required=False,
+                        default='none',
+                        help='Last photo downloaded')
     args = parser.parse_args()
 
     return args
