@@ -219,8 +219,8 @@ def download(browser, username, album, lastdownload):
     # check if already downloaded
     if os.path.isfile(filename):
         print("Photo {} already downloaded".format(filename))
-        # Go to last download url if last download is not none
-        if lastdownload != 'none':
+        # Go to last download url if last download is not none and current url is not last download url
+        if lastdownload != 'none' and browser.current_url != lastdownload:
             browser.get(lastdownload)
         return True
 
