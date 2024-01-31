@@ -178,6 +178,7 @@ def go():
 
 # download photo
 def download(browser, username, album, lastdownload):
+    lastdownloadaccessed = False
     # update browser object with content from current url
     browser.get(browser.current_url)
 
@@ -219,9 +220,10 @@ def download(browser, username, album, lastdownload):
     # check if already downloaded
     if os.path.isfile(filename):
         print("Photo {} already downloaded".format(filename))
-        # Go to last download url if last download is not none and current url is not last download url
-        if lastdownload != 'none' and browser.current_url != lastdownload:
+        # Go to last download url if last download is not none and current url is not last download url and last download is not accessed yet
+        if lastdownload != 'none' and browser.current_url != lastdownload and lastdownloadaccessed == False:
             browser.get(lastdownload)
+            lastdownloadaccessed = True
         return True
 
     # download the image
