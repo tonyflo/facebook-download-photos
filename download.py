@@ -141,6 +141,7 @@ def go():
     count_download = 0
     count_total = 0
     number_of_photos = 'an unknown'
+    lastdownloadaccessed = False
     while True:
         current_photo = browser.current_url
         if 'videos' in current_photo:
@@ -150,7 +151,11 @@ def go():
 
         count_total = count_total + 1
         try:
-            success = download(browser, username, album, lastdownload)
+            success = download(browser, username, album, lastdownload, lastdownloadaccessed)
+            # Set last download accessed to true if download returns lda, then sets success to true
+            if success == 'lda' and lastdownloadaccessed == False:
+                lastdownloadaccessed = True
+                success = True
         except RuntimeError as e:
             print('ERROR: Facebook blocked this account for "going too fast".')
             print('  This is tempoary, but you must wait before trying again.')
@@ -177,8 +182,7 @@ def go():
         number_of_photos))
 
 # download photo
-def download(browser, username, album, lastdownload):
-    lastdownloadaccessed = False
+def download(browser, username, album, lastdownload, lastdownloadaccessed):
     # update browser object with content from current url
     browser.get(browser.current_url)
 
@@ -222,9 +226,12 @@ def download(browser, username, album, lastdownload):
         print("Photo {} already downloaded".format(filename))
         # Go to last download url if last download is not none and current url is not last download url and last download is not accessed yet
         if lastdownload != 'none' and browser.current_url != lastdownload and lastdownloadaccessed == False:
+            print('Going to last download url: {}'.format(lastdownload))
             browser.get(lastdownload)
-            lastdownloadaccessed = True
-        return True
+            lastdownloadaccessed = 'lda'
+            return lastdownloadaccessed
+        else:
+            return True
 
     # download the image
     print('Downloading {}'.format(uri))
