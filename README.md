@@ -7,46 +7,48 @@ So I decided to write this script to download Facebook photos that you're tagged
 
 ## How to Download All Your Photos from Facebook
 
-**NOTE:** You will need to have Python 3, git, and Google Chrome installed
+**NOTE:** You will need to have [Python 3 & uv](https://docs.astral.sh/uv/getting-started/installation/), Google Chrome, and optionally git installed.
 
-This code was tested on macOS, but should also work on Windows and Linux.
-
-### 1. Create a virtual Python environment
-```
-python3 -m venv ~/env/fb
-source ~/env/fb/bin/activate
-```
-
-### 2. Install the selenium package
-```
-python3 -m pip install --upgrade pip
-pip install selenium
-pip install webdriver-manager
-```
+This code was tested on macOS and Linux, but should also work on Windows.
  
-### 3. Clone this repository
-```
+### 1. Clone or download this repository
+```sh
 git clone https://github.com/tonyflo/facebook-download-photos.git
 cd facebook-download-photos
 ```
 
-### 4. Download Facebook photos you're tagged in
+### 2. Download Facebook photos you're tagged in
 Execute the following command to download all Facebook photos that you are tagged in.
-```
-python download.py -e you@example.com -p password -a of
+```sh
+uv run download.py -e you@example.com -p password -a of
 ```
 **NOTE:** *Be sure to replace *email* and *password* with your actual Facebook username, email, and password.*
 
-### 5. Download Facebook photos you've uploaded
+### 3. Download Facebook photos you've uploaded
+```sh
+uv run download.py -e you@example.com -p password -a by
 ```
+**NOTE:** *Be sure to replace *email* and *password* with your actual Facebook username, email, and password.*
+
+### 4. Download someone else's Facebook photos
+```
+uv run download.py -u username -e you@example.com -p password -a of
+uv run download.py -u username -e you@example.com -p password -a by
+```
+
+### Running without uv
+
+If you don't want to install uv, you can run the script with a python env as well. For example:
+
+```sh
+python3 -m venv ~/env/fb
+source ~/env/fb/bin/activate
+
+python3 -m pip install --upgrade pip
+pip install selenium
+pip install webdriver-manager
+
 python download.py -e you@example.com -p password -a by
-```
-**NOTE:** *Be sure to replace *email* and *password* with your actual Facebook username, email, and password.*
-
-### 6. Download someone else's Facebook photos
-```
-python download.py -u username -e you@example.com -p password -a of
-python download.py -u username -e you@example.com -p password -a by
 ```
 
 ## Command Overview

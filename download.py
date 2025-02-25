@@ -1,3 +1,10 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "selenium",
+#     "webdriver-manager",
+# ]
+# ///
 # Download Facebook photos that you are tagged in and that you uploaded
 
 import os
