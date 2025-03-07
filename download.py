@@ -35,15 +35,27 @@ def get_element(browser, how, what):
 
 # hit right arrow key to go to next photo
 # return fbid of photo
-def next_photo(browser, timeout=1):
+next_ph_count = 0
+
+def next_photo(browser, timeout=1, batch=8):
+    min_value = timeout * 0.4
+    max_value = timeout * 1.2
+    
+    if next_ph_count % batch == 0:
+        max_value += round(random.uniform(0.6, 1), 2)
+
+    else:
+        max_value -= 0.1
+
     body = get_element(browser, By.XPATH, '/html/body')
     if body is None:
         return  None
 
     body.send_keys(Keys.RIGHT)
-    time.sleep(timeout) # wait this many seconds
+    time.sleep(round(random.uniform(min_value, max_value), 2)) # wait this many seconds
 
     return get_photo_id(browser.current_url)
+
 
 # open the first photo in album that's displayed on the page
 # returns the url of the first photo in the album
