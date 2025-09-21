@@ -22,16 +22,82 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import (NoSuchElementException, ElementClickInterceptedException,
+                                        TimeoutException)
 from webdriver_manager.chrome import ChromeDriverManager
 
 
 def get_element(browser, how, what):
-    element = None
+    """Return element or None without raising."""
     try:
-        element = browser.find_element(how, what)
-    except selenium.common.exceptions.NoSuchElementException:
-        pass
-    return element
+        return browser.find_element(how, what)
+    except NoSuchElementException:
+        return None
+
+
+def first_present(browser, locator_options, timeout=0):
+    """Return the first located element from a list of locator tuples.
+
+    locator_options: list[tuple[By, str]]
+    timeout: seconds to wait (0 for immediate)
+    """
+    if timeout > 0:
+        end = time.time() + timeout
+        while time.time() < end:
+            for how, what in locator_options:
+                el = get_element(browser, how, what)
+                if el is not None:
+                    return el
+            time.sleep(0.2)
+        return None
+    else:
+        for how, what in locator_options:
+            el = get_element(browser, how, what)
+            if el is not None:
+                return el
+        return None
+
+
+def safe_click(browser, element):
+    """Attempt normal click, fallback to JS click if intercepted."""
+    if element is None:
+        return False
+    try:
+        element.click()
+        return True
+    except ElementClickInterceptedException:
+        # attempt scrolling and JS click
+        browser.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
+        time.sleep(0.3)
+        try:
+            element.click()
+            return True
+        except ElementClickInterceptedException:
+            browser.execute_script("arguments[0].click();", element)
+            return True
+    except Exception:
+        return False
+
+
+def dismiss_cookie_dialog(browser):
+    """Best-effort cookie dialog dismissal before login.
+
+    Facebook deploys many variants; we try several common button texts / data-testids.
+    This should be safe even if elements not present.
+    """
+    candidates = [
+        (By.XPATH, "//button[contains(., 'Allow all cookies')]") ,
+        (By.XPATH, "//button[contains(., 'Only allow essential cookies')]") ,
+        (By.XPATH, "//button[contains(., 'Decline optional cookies')]") ,
+        (By.XPATH, "//div[@role='dialog']//button[contains(., 'Decline')]"),
+        (By.XPATH, "//div[@role='dialog']//button[contains(., 'Allow all')]"),
+    ]
+    for how, what in candidates:
+        el = get_element(browser, how, what)
+        if el:
+            if safe_click(browser, el):
+                return True
+    return False
 
 # hit right arrow key to go to next photo
 # return fbid of photo
@@ -48,27 +114,31 @@ def next_photo(browser, timeout=1):
 # open the first photo in album that's displayed on the page
 # returns the url of the first photo in the album
 def open_album(browser):
-    photo_str = 'photo.php'
-    photo_base = 'https://www.facebook.com/photo'
-    xpath_str = '''//div[contains( text( ), photo_str)]'''
-    photos_tag = get_element(browser, By.XPATH, xpath_str)
-    if photos_tag is None:
-        return  None
+    """Open first photo currently visible in album grid.
 
-    photos_html = photos_tag.get_attribute('innerHTML')
-    photo_search_str = '(href="'+ photo_base + '\.php(?P<pid>.*?)")'
-    photo_search = re.search(photo_search_str, photos_html)
-    photo_id = photo_search.group('pid')
-    photo_url = photo_base + photo_id
-    photo_url = photo_url.replace('amp;','') # remove these from url
-    browser.get(photo_url)
-
-    return photo_url
+    Facebook markup changes often; we attempt a few strategies:
+    1. look for anchor with href containing 'photo.php'
+    2. look for anchor with href starting with /photo
+    Return the navigated photo URL or None.
+    """
+    photo_selectors = [
+        (By.CSS_SELECTOR, "a[href*='photo.php']"),
+        (By.XPATH, "//a[contains(@href,'photo.php')]") ,
+        (By.XPATH, "//a[starts-with(@href,'/photo')]") ,
+    ]
+    link = first_present(browser, photo_selectors, timeout=5)
+    if not link:
+        return None
+    href = link.get_attribute('href')
+    if not href:
+        return None
+    browser.get(href)
+    return browser.current_url
 
 # extract the fbid for the photo at the url
 def get_photo_id(url):
     try:
-        pid = re.search('fbid=(?P<pid>\d+)\&', url).group('pid')
+        pid = re.search(r'fbid=(?P<pid>\d+)\&', url).group('pid')
     except AttributeError:
         pid = ''
     return pid
@@ -103,23 +173,54 @@ def go():
     print('Going to Facebook')
     fb_url = 'https://www.facebook.com/login'
     browser.get(fb_url)
+    # pre-login cookie dialog dismissal
+    dismiss_cookie_dialog(browser)
     if not logged_in(browser):
         print('Logging into Facebook')
-        email = browser.find_element(By.ID, "email")
-        password = browser.find_element(By.ID, "pass")
-        submit = browser.find_element(By.ID, "loginbutton")
+        # Wait for inputs
+        try:
+            WebDriverWait(browser, 20).until(EC.presence_of_element_located((By.ID, "email")))
+        except TimeoutException:
+            print('ERROR: Email field not found; page structure may have changed.')
+            return
+        email = first_present(browser, [(By.ID, "email"), (By.NAME, "email")])
+        password = first_present(browser, [(By.ID, "pass"), (By.NAME, "pass")])
+        if not email or not password:
+            print('ERROR: Unable to find login form elements.')
+            return
+        email.clear(); password.clear()
         email.send_keys(args.email)
         password.send_keys(args.password)
-        submit.click()
-        time.sleep(3) # wait this many seconds
+        # Try clicking login button; fallback to ENTER
+        login_button = first_present(browser, [
+            (By.ID, 'loginbutton'),
+            (By.NAME, 'login'),
+            (By.XPATH, "//button[@type='submit' and @name='login']"),
+        ])
+        if login_button:
+            # Wait until clickable
+            try:
+                WebDriverWait(browser, 10).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='loginbutton' or @name='login']")))
+            except TimeoutException:
+                pass
+            clicked = safe_click(browser, login_button)
+            if not clicked:
+                password.send_keys(Keys.ENTER)
+        else:
+            password.send_keys(Keys.ENTER)
+        # Wait for navigation / success or potential 2FA
+        time.sleep(3)
         if is_two_step(browser):
-            input('🚨 There is a captcha or two-auth, please complete and then press enter to continue. 🚨')
+            input('🚨 Two-step or captcha detected. Complete it in the browser then press ENTER here to continue. 🚨')
             time.sleep(3)
         browser.get(browser.current_url)
 
     if not logged_in(browser):
         print('Login failed. Please check your credentials')
         return
+    
+    # Try again after login for any lingering cookie dialogs
+    dismiss_cookie_dialog(browser)
 
     print('Going to profile page for ' + username)
     fb_profile = 'https://www.facebook.com/{}'.format(username)
@@ -205,16 +306,16 @@ def download(browser, username, album):
     script_html = script_tag.get_attribute('innerHTML')
 
     # parse the tag for the image url
-    html_search = re.search('"image":{"uri":"(?P<uri>.*?)"', script_html)
+    html_search = re.search(r'"image":{"uri":"(?P<uri>.*?)"', script_html)
     uri = html_search.group('uri').replace('\\', '')
 
     # determine file type and photo id
-    matches = re.search('(?P<photo_id>\w+)\.(?P<ext>\w+)\?', uri)
+    matches = re.search(r'(?P<photo_id>\w+)\.(?P<ext>\w+)\?', uri)
     ext = matches.group('ext')
     photo_id = matches.group('photo_id')
 
     # parse the tag for the image date
-    time_search = re.search('"created_time":(?P<timestamp>\d+)', script_html)
+    time_search = re.search(r'"created_time":(?P<timestamp>\d+)', script_html)
     ts = int(time_search.group('timestamp'))
     dt = datetime.utcfromtimestamp(ts).strftime('%Y%m%d')
 
@@ -235,6 +336,7 @@ def download(browser, username, album):
 
     # download the image
     print('Downloading {}'.format(uri))
+    os.makedirs('photos', exist_ok=True)
     try:
         urllib.request.urlretrieve(uri, filename)
     except urllib.error.URLError as e:
