@@ -53,21 +53,30 @@ python download.py -e you@example.com -p password -a by
 
 ## Command Overview
 ```
-usage: download.py [-h] -e EMAIL -p PASSWORD [-a {of,by}] [-u USERNAME]
+usage: download.py [-h] -e EMAIL -p PASSWORD [-a {of,by}] [-u USERNAME] [--start-url URL] [--resume] [-t TIMEOUT]
 
 Download photos from Facebook
 
 optional arguments:
   -h, --help            show this help message and exit
+
   -e EMAIL, --email EMAIL
                         Your Facebook email
+
   -p PASSWORD, --password PASSWORD
                         Your Facebook password
+
   -a {of,by}, --album {of,by}
                         Photo album to download (default: of). Use "of" to download
                         tagged photos. Use "by" to download uploaded photos.
+
   -u USERNAME, --username USERNAME
                         Facebook username to download photos from
+
+  --start-url URL       Start from this photo URL instead of opening the album
+
+  --resume              Resume from the last saved photo URL (.last_url). Useful if the process is stopped partway through, using the last successful url as a starting point.
+  
   -t TIMEOUT, --timeout TIMEOUT
                         Wait this many seconds between photos (default: 2)
 ```

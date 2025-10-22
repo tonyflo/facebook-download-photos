@@ -87,6 +87,8 @@ def go():
     album = args.album
     username = args.username
     timeout = args.timeout
+    start_url = args.start_url
+    resume = args.resume
 
     print('Opening Google Chrome browser')
     prefs = {"profile.default_content_setting_values.notifications" : 2}
@@ -132,19 +134,41 @@ def go():
         fb_photos = browser.current_url + '&sk=photos'
     browser.get(fb_photos)
 
-    print('Opening "{}" photo album'.format(album))
+    # If a start URL or resume is provided, skip album opening and go directly
+    # to that URL. Otherwise open the album normally.
     fb_photo_album = fb_photos + '_' + album
-    browser.get(fb_photo_album)
-
-    print('Loading first photo')
-    try:
-        first_photo = open_album(browser)
-    except AttributeError:
-        print('User does not have "{}" album'.format(album))
-        return
-    if first_photo is None:
-        print('User does not have "{}" album'.format(album))
-        return
+    if start_url:
+        print('Starting from provided URL: {}'.format(start_url))
+        browser.get(start_url)
+        first_photo = browser.current_url
+    elif resume:
+        # try to read last saved url file
+        last_url_file = os.path.join(os.getcwd(), '.last_url')
+        if os.path.isfile(last_url_file):
+            with open(last_url_file, 'r') as f:
+                last = f.read().strip()
+            if last:
+                print('Resuming from last saved URL: {}'.format(last))
+                browser.get(last)
+                first_photo = browser.current_url
+            else:
+                print('ERROR: Resume file is empty. Cannot resume.')
+                return
+        else:
+            print('ERROR: No resume file found. Cannot resume.')
+            return
+    else:
+        print('Opening "{}" photo album'.format(album))
+        browser.get(fb_photo_album)
+        print('Loading first photo')
+        try:
+            first_photo = open_album(browser)
+        except AttributeError:
+            print('User does not have "{}" album'.format(album))
+            return
+        if first_photo is None:
+            print('User does not have "{}" album'.format(album))
+            return
 
     first_photo_id = get_photo_id(first_photo)
 
@@ -155,6 +179,13 @@ def go():
     number_of_photos = 'an unknown'
     while True:
         current_photo = browser.current_url
+        # persist the current url so we can resume if the script crashes
+        try:
+            last_url_file = os.path.join(os.getcwd(), '.last_url')
+            with open(last_url_file, 'w') as f:
+                f.write(current_photo)
+        except Exception:
+            pass
         if 'videos' in current_photo:
             print('Skipping video: {}'.format(current_photo))
             next_photo(browser, timeout)
@@ -187,6 +218,13 @@ def go():
         count_download, 
         count_total,
         number_of_photos))
+    # cleanup resume file on successful completion
+    try:
+        last_url_file = os.path.join(os.getcwd(), '.last_url')
+        if os.path.isfile(last_url_file):
+            os.remove(last_url_file)
+    except Exception:
+        pass
 
 # download photo
 def download(browser, username, album):
@@ -277,6 +315,14 @@ def get_args():
                         required=False,
                         default='me',
                         help='Facebook username to download photos from')
+    parser.add_argument('--start-url',
+                        type=str,
+                        required=False,
+                        default='',
+                        help='Start from this photo URL instead of opening the album')
+    parser.add_argument('--resume',
+                        action='store_true',
+                        help='Resume from the last saved photo URL (.last_url)')
     timeout_help=('Wait this many seconds between photos '
                   '(default: %(default)s)')
     parser.add_argument('-t', '--timeout',
