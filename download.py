@@ -56,7 +56,7 @@ def open_album(browser):
         return  None
 
     photos_html = photos_tag.get_attribute('innerHTML')
-    photo_search_str = '(href="'+ photo_base + '\.php(?P<pid>.*?)")'
+    photo_search_str = '(href="'+ photo_base + '\\.php(?P<pid>.*?)")'
     photo_search = re.search(photo_search_str, photos_html)
     photo_id = photo_search.group('pid')
     photo_url = photo_base + photo_id
@@ -68,7 +68,7 @@ def open_album(browser):
 # extract the fbid for the photo at the url
 def get_photo_id(url):
     try:
-        pid = re.search('fbid=(?P<pid>\d+)\&', url).group('pid')
+        pid = re.search('fbid=(?P<pid>\\d+)\\&', url).group('pid')
     except AttributeError:
         pid = ''
     return pid
@@ -209,12 +209,12 @@ def download(browser, username, album):
     uri = html_search.group('uri').replace('\\', '')
 
     # determine file type and photo id
-    matches = re.search('(?P<photo_id>\w+)\.(?P<ext>\w+)\?', uri)
+    matches = re.search('(?P<photo_id>\\w+)\\.(?P<ext>\\w+)\\?', uri)
     ext = matches.group('ext')
     photo_id = matches.group('photo_id')
 
     # parse the tag for the image date
-    time_search = re.search('"created_time":(?P<timestamp>\d+)', script_html)
+    time_search = re.search('"created_time":(?P<timestamp>\\d+)', script_html)
     ts = int(time_search.group('timestamp'))
     dt = datetime.utcfromtimestamp(ts).strftime('%Y%m%d')
 
