@@ -7,6 +7,9 @@
 # ///
 # Download Facebook photos that you are tagged in and that you uploaded
 
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+
 import os
 import re
 import time
@@ -105,17 +108,7 @@ def go():
     browser.get(fb_url)
     if not logged_in(browser):
         print('Logging into Facebook')
-        email = browser.find_element(By.ID, "email")
-        password = browser.find_element(By.ID, "pass")
-        submit = browser.find_element(By.ID, "loginbutton")
-        email.send_keys(args.email)
-        password.send_keys(args.password)
-        submit.click()
-        time.sleep(3) # wait this many seconds
-        if is_two_step(browser):
-            input('🚨 There is a captcha or two-auth, please complete and then press enter to continue. 🚨')
-            time.sleep(3)
-        browser.get(browser.current_url)
+        input('🔐 Please log in manually in the Chrome window, then press Enter here to continue...')
 
     if not logged_in(browser):
         print('Login failed. Please check your credentials')
