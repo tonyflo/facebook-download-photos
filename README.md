@@ -71,3 +71,20 @@ optional arguments:
   -t TIMEOUT, --timeout TIMEOUT
                         Wait this many seconds between photos (default: 2)
 ```
+## Mac + Python 3.14 Compatibility Notes
+*Added by contributor [@christopheralow]*
+
+If you are on **macOS with Python 3.14**, you may encounter two additional issues not covered above:
+
+### 1. SSL Certificate Error
+When downloading photos you may see:
+SSL: CERTIFICATE_VERIFY_FAILED
+Fix this by running the following command in your terminal:
+/Applications/Python\ 3.14/Install\ Certificates.command
+This only needs to be done once.
+
+### 2. Facebook Blocks Automated Login
+Facebook may block the automated login and show a blank page. 
+This script has been updated to prompt you to **log in manually** in the 
+Chrome window instead. When you see the login page, type your credentials 
+yourself, then press **Enter** in the terminal to continue.
